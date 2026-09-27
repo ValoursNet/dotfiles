@@ -14,16 +14,9 @@ Each skill is linked into `~/.claude/skills/` on its own, so private skills on t
 | `slopcop` | Lists the AI writing habits it finds in a piece of text. |
 | `ste-writing` | Rewrites docs in Simplified Technical English, the plain-English standard used in aerospace manuals. |
 | `stop-slop` | Edits a draft to remove predictable AI writing patterns. |
+| `write-like-michael` | Drafts and rewrites prose in Michael's natural voice, using writing guidance and examples. |
 
 `ste-writing` can use the ASD-STE100 spec PDF, which is not in this repo. Get it free from asd-ste100.org and put it in the skill folder.
-
-## Codex skills
-
-Skills are linked into `~/.codex/skills/`.
-
-| Skill | What it does |
-| --- | --- |
-| `write-like-michael` | Drafts and rewrites prose in Michael's natural voice, using writing guidance and examples. |
 
 ## Plugins
 
