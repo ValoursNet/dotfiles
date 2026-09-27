@@ -1,0 +1,4 @@
+interface:
+  display_name: "Write Like Michael"
+  short_description: "Draft and rewrite in Michael’s natural voice"
+  default_prompt: "Use $write-like-michael to rewrite this in my voice, keeping the facts and intent intact."

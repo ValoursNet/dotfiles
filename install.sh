@@ -4,7 +4,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 command -v stow >/dev/null || brew install stow
-stow -t "$HOME" claude
+stow -t "$HOME" claude codex
 
 (cd claude/.claude/skills/slopcop && npm ci --silent)
 
