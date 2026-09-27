@@ -1,0 +1,11 @@
+{
+  "name": "slopcop-skill",
+  "private": true,
+  "type": "module",
+  "description": "Client-side slop-cop detectors vendored as a CLI. Upstream: https://github.com/awnist/slop-cop",
+  "dependencies": {
+    "compromise": "^14.15.0",
+    "retext": "^9.0.0",
+    "retext-indefinite-article": "^5.0.0"
+  }
+}

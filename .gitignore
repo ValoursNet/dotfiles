@@ -1,0 +1,4 @@
+node_modules/
+*.pdf
+.*_api_key
+.DS_Store
