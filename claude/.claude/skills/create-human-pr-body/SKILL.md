@@ -36,24 +36,15 @@ The bodies that passed share one shape. Copy it before running anything:
 | Report only what this change touched. | `off_topic` |
 | Under about 100 words of prose unless a table of evidence needs more. | `verbose for change size` above 10 words per changed line |
 
-The AGENTS.md § PR body requirements still apply on top: Feature flags table
-when a flag is added, `## Linear` section when a ticket applies, before/after
-media for UI changes. The judge checks the first two.
+Follow the target repository's PR requirements and any applicable `AGENTS.md`
+instructions. The judge also checks Feature flags tables and Linear ticket formatting.
 
-## TypeSafe authorization
+## Data sent to TypeSafe
 
-Michael granted standing approval on 2026-09-20 for this skill's judge to send
-PR drafts, titles, changed file names, and the selected branch diff to
-`https://api.typesafe.ai/v1/systemone`, including revision rounds. Proceed
-without asking again for this payload and destination; changes to either
-require new authorization. This approval does not authorize PR edits or
-reading an existing PR body when the task prohibits it.
-
-Run the documented `python3` command as a standalone command. Codex's
-`~/.codex/rules/create-human-pr-body.rules` allows that exact judge script
-outside the sandbox. If execution still needs approval review, cite this
-standing authorization and the destination in the escalation justification.
-Managed restrictions still apply.
+The judge sends PR text, titles, changed file names, and the selected diff to
+`https://api.typesafe.ai/v1/systemone`, including revision rounds. Use it only
+when the user has authorized sending that content to TypeSafe. Keep personal
+standing approvals in private configuration, not in this shared skill.
 
 ## Process
 
@@ -84,15 +75,12 @@ unreachable jev.
 
 The key is read from `TYPESAFE_API_KEY` if exported, else from
 `~/.claude/skills/create-human-pr-body/.typesafe_api_key` (mode 600, one line,
-already in place), else `.agents/bin/secret TYPESAFE_API_KEY`, else the shared
-dev key in Secret Manager via `gcloud`. Lexical tells use
+Git-ignored). Supply your own key using either option. Lexical tells use
 `~/.claude/skills/slopcop` when present and are skipped otherwise.
 
 ## Reference
 
 - Rules, thresholds and the jev questions: `scripts/judge.py`, one dict per
   question, one `if` per rule.
-- Tuning history and the labelled set the thresholds came from: `.scratch/jev/` in the lovable checkout (gitignored), 2026-09-19.
-  `.scratch/jev/` (gitignored, on the author's machine), 2026-09-19.
-- PR body contract: `AGENTS.md` § Pull Request Guidelines › PR body.
-- jev: `go/api/pkg/typesafe/README.md`, https://docs.typesafe.ai/api.
+- PR body requirements: the target repository's contribution guidelines and `AGENTS.md`, if present.
+- jev: https://docs.typesafe.ai/api.

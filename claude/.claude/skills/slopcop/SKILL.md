@@ -1,7 +1,7 @@
 ---
 name: slopcop
 description: Flag LLM prose tells in text — overused intensifiers, "it's important to note", not-X-but-Y pivots, em-dash overuse, triple constructions, and 30+ more. Deterministic regex/POS detectors, no model judgment. Use when asked to slopcop / slop-check / de-slop a draft, check whether writing reads AI-generated, or lint prose before shipping docs, PR bodies, or release notes.
-allowed-tools: Bash(/Users/michael/.claude/skills/slopcop/slopcop:*), Read
+allowed-tools: Bash(~/.claude/skills/slopcop/slopcop:*), Read
 tier: advisory
 ---
 

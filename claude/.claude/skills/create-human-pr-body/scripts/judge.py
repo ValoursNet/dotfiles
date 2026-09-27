@@ -22,7 +22,6 @@ URL = "https://api.typesafe.ai/v1/systemone"
 MODEL = "jev-latest"
 REVIEW_BAND = (0.35, 0.65)
 USAGE = {"calls": 0, "input_tokens": 0, "output_tokens": 0}  # printed with the verdict
-REPO = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True).stdout.strip() or "."
 _KEY = None
 
 
@@ -30,19 +29,13 @@ KEY_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__
 
 
 def api_key():
-    """TYPESAFE_API_KEY from the environment, else the key file beside the skill, else `.agents/bin/secret`, else Secret Manager."""
+    """Read TYPESAFE_API_KEY from the environment or the key file beside the skill."""
     global _KEY
     if _KEY:
         return _KEY
     if not os.environ.get("TYPESAFE_API_KEY") and os.path.exists(KEY_FILE):
-        os.environ["TYPESAFE_API_KEY"] = open(KEY_FILE).read().strip()
-    for cmd in ([os.path.join(REPO, ".agents/bin/secret"), "TYPESAFE_API_KEY"],
-                ["gcloud", "secrets", "versions", "access", "latest", "--secret=typesafe-api-key", "--project=lovable-core-dev"]):
-        if os.environ.get("TYPESAFE_API_KEY"):
-            break
-        r = subprocess.run(cmd, capture_output=True, text=True)
-        if r.returncode == 0 and r.stdout.strip():
-            os.environ["TYPESAFE_API_KEY"] = r.stdout.strip()
+        with open(KEY_FILE) as key_file:
+            os.environ["TYPESAFE_API_KEY"] = key_file.read().strip()
     _KEY = os.environ.get("TYPESAFE_API_KEY")
     if not _KEY:
         sys.exit(f"judge.py: no TYPESAFE_API_KEY (export it, or write it to {KEY_FILE})")
