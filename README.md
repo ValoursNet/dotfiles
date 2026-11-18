@@ -11,6 +11,7 @@ Each skill is linked into `~/.claude/skills/` on its own, so private skills on t
 | `bro` | Rewrites Claude's last reply in plain words, without the jargon. |
 | `create-human-pr-body` | Writes a pull request description, then revises it until a judge model says a person would want to read it. |
 | `deslop` | Detects AI writing patterns and rewrites prose in a natural voice. |
+| `pr-fold` | Writes a pull request description as a short opener, with the agent's full write-up folded away below it. Uses the `create-human-pr-body` judge when it is set up. |
 | `slopcop` | Lists the AI writing habits it finds in a piece of text. |
 | `ste-writing` | Rewrites docs in Simplified Technical English, the plain-English standard used in aerospace manuals. |
 | `stop-slop` | Edits a draft to remove predictable AI writing patterns. |
