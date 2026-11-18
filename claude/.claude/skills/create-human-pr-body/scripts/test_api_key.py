@@ -31,7 +31,7 @@ def test_api_key():
                     try:
                         judge.api_key()
                     except SystemExit as error:
-                        assert "no TYPESAFE_API_KEY" in str(error)
+                        assert error.code == 2
                     else:
                         raise AssertionError("Missing key must fail")
 

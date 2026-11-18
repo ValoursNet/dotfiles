@@ -25,16 +25,23 @@ assume a diff to judge against.
 
 The bodies that passed share one shape. Copy it before running anything:
 
+```markdown
+Shows admins why setting up their own cloud failed, instead of a generic error.
+
+Admins whose install fails today see "Something went wrong" and file a ticket. They now see the failing step and the cloud's own message, so most can fix the permission themselves.
+```
+
 | Do | Because the judge flags |
 | --- | --- |
-| First sentence: what the affected person hits today. Second: what changes for them. | `implementation inventory` when under a third of paragraphs say why or for whom |
+| Line 1: one plain sentence, under 25 words, saying what the PR does. A teammate outside the area should get it from that line alone. Then a blank line. | `weak opener` for a heading, a second sentence, jargon, or background in its place |
+| Then one paragraph: what the affected person hits today, and what changes for them. | `implementation inventory` when under a third of paragraphs say why or for whom |
 | Say nothing a reader gets from the diff: file names, function names, what replaced what. | `restates the diff` when two sentences are recoverable from it; `mechanism dump` for a 100-word walk through the code |
 | One line for what stays unchanged, when a reviewer would assume it changed. Stop there. | `defensive body` when paragraphs keep pre-empting objections nobody raised; `over_justified` |
 | Give a term a plain-language clause at first use, or drop the term. | `written for insiders` when jargon averages above 0.70 |
-| Evidence is a link, a number, a screenshot, or steps. Without one, say so and write the `Reviewer: confirm …` line. | `unverified claim`, `evidence that isn't` |
+| No Evidence, Testing, or Reviewer sections and no `Reviewer: confirm` lines. Don't claim it was tested; delete the sentence instead. Embed screenshots only where the repo requires them (UI changes). | `unverified claim` |
 | At most one number per sentence; no parentheticals stuffed with figures. | `over-precise` |
 | Report only what this change touched. | `off_topic` |
-| Under about 100 words of prose unless a table of evidence needs more. | `verbose for change size` above 10 words per changed line |
+| Under about 100 words. No headings and no tables, except a table the repo requires (Feature flags). | `verbose for change size` above 10 words per changed line |
 
 Follow the target repository's PR requirements and any applicable `AGENTS.md`
 instructions. The judge also checks Feature flags tables and Linear ticket formatting.
@@ -51,8 +58,8 @@ standing approvals in private configuration, not in this shared skill.
 1. Read the diff, not the commits: `git diff origin/main...HEAD`. Decide who
    is affected and what they see differently. If you cannot say, the body
    cannot either; ask the author.
-2. Draft the body to a file, unwrapped (GitHub soft-wraps), following the
-   table above.
+2. Draft the body to a file, unwrapped (GitHub soft-wraps): the one-line
+   opener, a blank line, then the paragraph, following the table above.
 3. Judge it:
 
    ```bash

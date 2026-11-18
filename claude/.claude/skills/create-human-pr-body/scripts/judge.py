@@ -25,6 +25,12 @@ USAGE = {"calls": 0, "input_tokens": 0, "output_tokens": 0}  # printed with the 
 _KEY = None
 
 
+def die(msg):
+    """Exit 2, not sys.exit(str)'s 1, so a broken judge never reads as a body with findings."""
+    print(f"judge.py: {msg}", file=sys.stderr)
+    sys.exit(2)
+
+
 KEY_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".typesafe_api_key")
 
 
@@ -38,7 +44,7 @@ def api_key():
             os.environ["TYPESAFE_API_KEY"] = key_file.read().strip()
     _KEY = os.environ.get("TYPESAFE_API_KEY")
     if not _KEY:
-        sys.exit(f"judge.py: no TYPESAFE_API_KEY (export it, or write it to {KEY_FILE})")
+        die(f"no TYPESAFE_API_KEY (export it, or write it to {KEY_FILE})")
     return _KEY
 SLOPCOP = os.path.expanduser("~/.claude/skills/slopcop/slopcop")
 # Structural rules misfire on Markdown that is correct in a PR body.
@@ -58,19 +64,6 @@ PARAGRAPH_QUESTIONS = {
             "specific": "States a concrete fact, number, behavior, or decision that a reader could verify or falsify.",
             "gesture": "Uses vague language (improves, streamlines, addresses potential issues, enhances) without a checkable statement.",
             "neither": "Neither a claim nor a gesture: a list of links, a question, a label.",
-        },
-    },
-    "evidence_type": {
-        "type": "choice",
-        "instructions": "What kind of evidence does `paragraph` offer for what it says?",
-        "criteria": {
-            "measurement": "A number, rate, latency, count, or score observed before/after.",
-            "media": "References a screenshot, recording, or video.",
-            "link": "Links to a run, dashboard, ticket, trace, or eval result.",
-            "repro": "Gives steps a reader could follow to reproduce the behavior.",
-            "quote": "Quotes an observed log line, error, or output.",
-            "assertion_only": "Claims something was tested, verified, or works, with nothing a reader could inspect.",
-            "none": "Makes no claim that needs evidence, or offers nothing at all.",
         },
     },
     "states_motivation": noul(
@@ -169,10 +162,10 @@ DOCUMENT_QUESTIONS = {
         "Explicitly names something that does not change or is out of scope.",
         "Only the changed behavior is described.",
     ),
-    "evidence_section_real": noul(
-        "If `body` has an evidence, proof, testing, or screenshots section, does it contain something inspectable rather than prose?",
-        "The section holds images, links, numbers, or steps. Also true when there is no such section.",
-        "The section exists but contains only sentences asserting that things were tested or work.",
+    "opener_says_what": noul(
+        "Does `first_line` alone tell a teammate outside this area what the PR does?",
+        "One plain sentence naming the change and its effect, readable without the rest of the body.",
+        "A heading, label, background, mechanism detail, or jargon that needs the rest of the body to make sense.",
     ),
     "linear_section_ok": noul(
         "Does every ticket reference in `body` (an identifier like DX-123) appear in a Linear section using exactly one of 'Closes XX-123', 'Part of XX-123', or 'Related to XX-123'?",
@@ -207,14 +200,15 @@ def ask(state, questions):
             data = json.load(r)
     except urllib.error.URLError as e:
         if not isinstance(e, urllib.error.HTTPError):
-            sys.exit(f"judge.py: cannot reach {URL}: {e.reason}")
+            die(f"cannot reach {URL}: {e.reason}")
         detail = e.read()[:300].decode(errors="replace")
         if "max_tokens_exceeded" in detail and state.get("diff"):
             state = {**state, "diff": state["diff"][: len(state["diff"]) // 2] or None}
             if state["diff"] is None:
                 del state["diff"]
             return ask(state, questions)
-        sys.exit(f"judge.py: jev HTTP {e.code} ({len(body)} bytes sent): {detail}")
+        hint = f"; key rejected, refresh {KEY_FILE} or TYPESAFE_API_KEY" if e.code in (401, 403) else ""
+        die(f"jev HTTP {e.code} ({len(body)} bytes sent): {detail}{hint}")
     USAGE["calls"] += 1
     USAGE["input_tokens"] += data["usage"]["input_tokens"]
     USAGE["output_tokens"] += data["usage"]["output_tokens"]
@@ -283,6 +277,21 @@ def flags(a, lexical, words, text="", ignore=()):
     return strong + (weak if len(weak) >= 2 else [])
 
 
+def opener(text):
+    """The first non-empty line, and why its shape is wrong (None when it is one short sentence followed by a blank line)."""
+    lines = text.strip().splitlines()
+    first = lines[0].strip() if lines else ""
+    if not first or first.startswith(("#", "|", "-", "*", ">", "!", "<", "```")):
+        return first, "starts with markup, not a sentence"
+    if len(first.split()) > 25:
+        return first, f"{len(first.split())} words, keep it under 25"
+    if len(sentences(first)) > 1:
+        return first, "more than one sentence"
+    if len(lines) > 1 and lines[1].strip():
+        return first, "no blank line after it"
+    return first, None
+
+
 def document_flags(par_answers, doc, words, changed_lines, ignore=()):
     """Body-level findings; thresholds are guesses until labels.tsv has enough rows."""
     out = []
@@ -302,8 +311,8 @@ def document_flags(par_answers, doc, words, changed_lines, ignore=()):
     defensive = sum(a["over_justified"]["noul"] for a in par_answers) / n
     if on("defensive body") and n >= 2 and defensive >= 0.5:
         out.append(f"defensive body (over-justification {defensive:.2f} across paragraphs)")
-    if on("evidence that isn't") and doc["evidence_section_real"]["noul"] < 0.3:
-        out.append("evidence that isn't (section holds only assertions)")
+    if on("weak opener") and doc["opener_says_what"]["noul"] < 0.5:
+        out.append("weak opener (first line doesn't say what the PR does)")
     red = [v["noul"] for a in par_answers for k, v in a.items() if k.startswith("rederivable_")]
     if on("restates the diff") and sum(x > 0.5 for x in red) >= 2:  # one borderline sentence flipped 3-sentence bodies
         out.append(f"restates the diff ({sum(x > 0.5 for x in red)}/{len(red)} sentences)")
@@ -333,7 +342,7 @@ def load_branch(base):
     rng = f"{base}...HEAD"
     diff = subprocess.run(["git", "diff", rng], capture_output=True, text=True)
     if diff.returncode != 0:
-        sys.exit(f"judge.py: git diff {rng} failed: {diff.stderr.strip()}")
+        die(f"git diff {rng} failed: {diff.stderr.strip()}")
     files = subprocess.run(["git", "diff", "--name-only", rng], capture_output=True, text=True).stdout.split()[:200]  # a wrong --base lists the whole repo
     stat = subprocess.run(["git", "diff", "--numstat", rng], capture_output=True, text=True).stdout
     changed = sum(int(a) + int(b) for a, b, *_ in (l.split("\t") for l in stat.splitlines()) if a.isdigit() and b.isdigit())
@@ -341,17 +350,17 @@ def load_branch(base):
 
 
 HINTS = {
-    "unverified claim": "says tested/verified/works with nothing a reader can open; link a run, number, screenshot or steps, or write `Reviewer: confirm …`",
+    "unverified claim": "says tested/verified/works with nothing a reader can open; delete the claim",
     "lexical": "slopcop tells; cut the phrase rather than reword it",
     "mechanism dump": "a walk through the code; the diff already shows it, keep the reason it was needed",
     "throat_clearing": "a sentence that announces or reassures instead of informing; delete it",
     "over_justified": "defends a choice nobody questioned; one line of scope is enough",
     "off_topic": "reports on things this change did not touch; move it to the ticket or drop it",
-    "over-precise": "figures and parentheticals per sentence; keep one number, move the rest to the evidence table",
+    "over-precise": "figures and parentheticals per sentence; keep the one number that matters, drop the rest",
     "verbose for change size": "too many words for the diff; a short change earns a short body",
     "implementation inventory": "too few paragraphs say who is affected or why; open with what the reader hits today",
     "written for insiders": "jargon a teammate outside the area would look up; add a plain clause at first use or drop the term",
-    "evidence that isn't": "the evidence section holds only assertions; link, measure, screenshot, or say there is none",
+    "weak opener": "open with one plain sentence of what the PR does, then a blank line, then the body",
     "restates the diff": "sentences a reviewer recovers from the diff; delete them",
     "defensive body": "the body keeps pre-empting objections; state the change and one line of scope",
 }
@@ -410,9 +419,12 @@ def main():
 
     dq = {**DOCUMENT_QUESTIONS, **(TITLE_QUESTIONS if title else {}),
           **(FLAG_QUESTIONS if files and any(f.startswith("confidence/flags/") for f in files) else {})}
-    doc = ask({"body": text[:TEXT_CAP], **extra}, dq)
+    first, shape = opener(text)
+    doc = ask({"body": text[:TEXT_CAP], "first_line": first, **extra}, dq)
     words = sum(len(q.split()) for _, q in paras)
     df = document_flags(all_answers, doc, words, changed_lines)
+    if shape:  # the shape problem replaces jev's opener finding so one bad line bumps the verdict once
+        df = [f"weak opener ({shape})", *(f for f in df if not f.startswith("weak opener"))]
     for reason in df:
         code = reason.split(" (")[0]
         msg = f"{reason}; {HINTS.get(code, '')}".rstrip("; ")
